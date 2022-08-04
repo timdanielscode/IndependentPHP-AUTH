@@ -3,7 +3,6 @@
  * Auth 
  * 
  * @author Tim Daniëls
- * @version 0.2.0
  */
 namespace extensions;
 
