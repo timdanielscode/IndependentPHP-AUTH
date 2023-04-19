@@ -6,9 +6,6 @@
  */
 namespace extensions;
 
-use app\models\User;
-use app\models\UserRole;
-use app\models\Roles;
 use core\http\Request;
 use database\DB;
 use core\Session;
@@ -24,39 +21,43 @@ class Auth {
      */
     public static function authenticate($userRole = null) {
 
-        $user = new User();
-
         $request = new Request();
         $username = $request->get()['username'];
         $password = $request->get()['password'];
 
         if($userRole !== null) {
 
-            $user_role = new UserRole();
-            $role = new Roles();
+            $userRoleType = $userRole['role'];
 
-            $userRole = $userRole['role'];
-            $sql = DB::try()->select($user->t.'.'.$user->id, $user->t.'.'.$user->username, $user->t.'.'.$user->password, $role->t.'.'.$role->name)->from($user->t)->join($user_role->t)->on($user->t.'.'.$user->id, '=', $user_role->t.'.'.$user_role->user_id)->join($role->t)->on($user_role->t.'.'.$user_role->role_id, '=', $role->t.'.'.$role->id)->where($user->username, '=', $username)->and($role->name, '=', $userRole)->first();
+            $sql = DB::try()->select('users.id', 'users.username', 'users.password','roles.name')->from('users')->join('user_role')->on('users.id', '=','user_role.user_id')->join('roles')->on('user_role.role_id', '=', 'roles.id')->where('users.username', '=', $username)->and('roles.name', '=', $userRoleType)->first();
         } else {
-
-            $sql = DB::try()->select($user->t.'.'.$user->username, $user->t.'.'.$user->password)->from($user->t)->where($user->username, '=', $username)->first();
-            $sql['name'] = '';
+            $sql = DB::try()->select('users.username', 'users.password')->from('users')->where('username', '=', $username)->first();
         }
+
+        return self::verifyPassword($sql, $password);
+    }
+
+    /**
+     * Verify user password
+     * 
+     * @param array $sql user database record
+     * @param string $password html input password value
+     * @return bool
+     */
+    public static function verifyPassword($sql, $password) {
 
         if(!empty($sql) && $sql !== null) {
 
             $fetched_password = $sql['password'];
             
-            if(!password_verify($password, $fetched_password)) {
-
-                return false;
-            } else {
+            if(password_verify($password, $fetched_password)) {
 
                 Session::set('logged_in', true);
                 Session::set('user_role', $sql['name']);
                 Session::set('username', $sql['username']);
+
                 return true;
-            }
+            } 
         }
     }
 }
