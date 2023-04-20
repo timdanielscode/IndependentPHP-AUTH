@@ -99,7 +99,7 @@ class Auth {
 
         if(Session::exists('failed_login_attempts_timestamp') === true) {
 
-            $timeoutInSeconds = 5;
+            $timeoutInSeconds = 300;
             $currentTime = time();
             $timestampFailedLoginAttempts = Session::get('failed_login_attempts_timestamp');
         
