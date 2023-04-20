@@ -12,6 +12,8 @@ use core\Session;
 
 class Auth {
 
+    private static $_userCredentialInputName, $_userCredentialInputValue, $_password;
+
     /**
      * Authenticate & authorize users
      * 
@@ -22,19 +24,40 @@ class Auth {
     public static function authenticate($userRole = null) {
 
         $request = new Request();
-        $username = $request->get()['username'];
-        $password = $request->get()['password'];
+
+        self::setUserCredentials($request);
 
         if($userRole !== null) {
 
             $userRoleType = $userRole['role'];
-
-            $sql = DB::try()->select('users.id', 'users.username', 'users.password','roles.name')->from('users')->join('user_role')->on('users.id', '=','user_role.user_id')->join('roles')->on('user_role.role_id', '=', 'roles.id')->where('users.username', '=', $username)->and('roles.name', '=', $userRoleType)->first();
+            $sql = DB::try()->select('users.id', 'users.username', 'users.password','roles.name')->from('users')->join('user_role')->on('users.id', '=','user_role.user_id')->join('roles')->on('user_role.role_id', '=', 'roles.id')->where('users'.'.'.$inputName, '=', $inputNameValue)->and('roles.name', '=', $userRoleType)->first();
         } else {
-            $sql = DB::try()->select('users.username', 'users.password')->from('users')->where('username', '=', $username)->first();
+
+            $sql = DB::try()->select(self::$_userCredentialInputName, 'username', 'password')->from('users')->where(self::$_userCredentialInputName, '=', self::$_userCredentialInputValue)->first();
         }
 
-        return self::verifyPassword($sql, $password);
+        return self::verifyPassword($sql);
+    }
+
+    /**
+     * Setting user credentials
+     * 
+     * @param object $request 
+     * @return bool
+     */
+    public static function setUserCredentials($request) {
+
+        self::$_password = $request->get()['password'];
+
+        if(!empty($request->get()['email']) && $request->get()['email'] !== null) {
+
+            self::$_userCredentialInputName = 'email';
+            self::$_userCredentialInputValue = $request->get()['email'];
+        } else if(!empty($request->get()['username']) && $request->get()['username'] !== null) {
+
+            self::$_userCredentialInputName = 'username';
+            self::$_userCredentialInputValue = $request->get()['username'];
+        }
     }
 
     /**
@@ -44,7 +67,7 @@ class Auth {
      * @param string $password html input password value
      * @return bool
      */
-    public static function verifyPassword($sql, $password) {
+    public static function verifyPassword($sql) {
 
         self::loginAttempt($sql);
 
@@ -52,7 +75,7 @@ class Auth {
 
             $fetched_password = $sql['password'];
             
-            if(password_verify($password, $fetched_password) && Session::exists('failed_login_attempts_timestamp') === false) {
+            if(password_verify(self::$_password, $fetched_password) && Session::exists('failed_login_attempts_timestamp') === false) {
 
                 Session::set('logged_in', true);
                 Session::set('user_role', $sql['name']);
