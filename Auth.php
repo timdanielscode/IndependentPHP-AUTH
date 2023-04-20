@@ -11,7 +11,7 @@ use database\DB;
 use core\Session;
 
 class Auth {
-    
+
     /**
      * Authenticate & authorize users
      * 
@@ -46,6 +46,8 @@ class Auth {
      */
     public static function verifyPassword($sql, $password) {
 
+        self::loginAttempt($sql);
+
         if(!empty($sql) && $sql !== null) {
 
             $fetched_password = $sql['password'];
@@ -55,57 +57,57 @@ class Auth {
                 Session::set('logged_in', true);
                 Session::set('user_role', $sql['name']);
                 Session::set('username', $sql['username']);
+                Session::set('failed_login_attempt', 0);
 
                 return true;
-                
-            } else {
-
-                return self::loginAttempts();
-            }
-        }
-
-        return self::loginAttempts();
+            } 
+        } 
     }
 
     /**
-     * Counting login attempts
+     * Counting failded login attempts
      * 
-     * @return string loging attempts session value
+     * @return string failed_login_attempt session value | failed_login_attempts_timestamp session value
      */
-    public static function loginAttempts() {
+    public static function loginAttempt($sql) {
 
-        self::failedLoginAttempts();
+        self::checkTooManyLoginAttempts();
 
-        if(Session::exists('loginAttempt') ) {
+        if(empty($sql) || $sql === null || Session::exists('logged_in') === false) {
 
-            $attempt = Session::get('loginAttempt');
-            $attempt++;
+            if(Session::exists('failed_login_attempt') === true) {
 
-            if(Session::get('loginAttempt') > 2) {
+                $attempt = Session::get('failed_login_attempt');
+                $attempt++;
 
-                Session::set('failed_login_attempts_timestamp', time());
+                if(Session::get('failed_login_attempt') > 2) {
+                    
+                    return Session::set('failed_login_attempts_timestamp', time());
+                }
+
+                return Session::set('failed_login_attempt', $attempt);
             }
-            return Session::set('loginAttempt', $attempt);
+
+            Session::set('failed_login_attempt', 1);
         }
-        Session::set('loginAttempt', 1);
     }
 
     /**
      * Setting timeout based on failed login attempts
      */
-    public static function failedLoginAttempts() {
+    public static function checkTooManyLoginAttempts() {
 
-        if(Session::exists('failed_login_attempts_timestamp') ) {
+        if(Session::exists('failed_login_attempts_timestamp') === true) {
 
-            $timeoutInSeconds = 300;
+            $timeoutInSeconds = 5;
             $currentTime = time();
             $timestampFailedLoginAttempts = Session::get('failed_login_attempts_timestamp');
-    
+        
             if($currentTime - $timestampFailedLoginAttempts > $timeoutInSeconds) {
-
-                Session::set('loginAttempt', 0);
+    
                 Session::delete('failed_login_attempts_timestamp');
-            }
+                Session::set('failed_login_attempt', 0);
+            } 
         }
     }
 }
