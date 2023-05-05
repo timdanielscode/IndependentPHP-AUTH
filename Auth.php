@@ -30,7 +30,7 @@ class Auth {
         if($userRole !== null) {
 
             $userRoleType = $userRole['role'];
-            $sql = DB::try()->select('users.id', 'users.username', 'users.password','roles.name')->from('users')->join('user_role')->on('users.id', '=','user_role.user_id')->join('roles')->on('user_role.role_id', '=', 'roles.id')->where('users'.'.'.$inputName, '=', $inputNameValue)->and('roles.name', '=', $userRoleType)->first();
+            $sql = DB::try()->select('users.id', 'users.username', 'users.password','roles.name')->from('users')->join('user_role')->on('users.id', '=','user_role.user_id')->join('roles')->on('user_role.role_id', '=', 'roles.id')->where('users'.'.'.self::$_userCredentialInputName, '=', self::$_userCredentialInputValue)->and('roles.name', '=', $userRoleType)->first();
         } else {
 
             $sql = DB::try()->select(self::$_userCredentialInputName, 'username', 'password')->from('users')->where(self::$_userCredentialInputName, '=', self::$_userCredentialInputValue)->first();
